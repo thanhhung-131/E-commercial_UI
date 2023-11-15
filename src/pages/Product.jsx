@@ -9,6 +9,8 @@ import { mobile } from '../responsive'
 import { useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { publicRequest } from '../requestMethods'
+import { addProduct } from '../redux/cartRedux'
+import { useDispatch } from 'react-redux'
 
 const Container = styled.div``
 
@@ -124,6 +126,9 @@ const Product = () => {
   const id = location.pathname.split('/')[2] // category
   const [product, setProduct] = useState({})
   const [quantity, setQuantity] = useState(1)
+  const [color, setColor] = useState('')
+  const [size, setSize] = useState('')
+  const dispatch = useDispatch()
 
   useEffect(() => {
     const getProduct = async () => {
@@ -134,6 +139,12 @@ const Product = () => {
     }
     getProduct()
   }, [id])
+
+  const handleClick = (req, res) => {
+    dispatch(
+      addProduct({ ...product, quantity, color, size })
+    )
+  }
 
   return (
     <Container>
@@ -151,11 +162,13 @@ const Product = () => {
             <Filter>
               <FilterTitle>Color</FilterTitle>
               {product.color &&
-                product.color.map(c => <FilterColor color={c} key={c} />)}
+                product.color.map(c => (
+                  <FilterColor color={c} key={c} onClick={() => setColor(c)} />
+                ))}
             </Filter>
             <Filter>
               <FilterTitle>Size</FilterTitle>
-              <FilterSize>
+              <FilterSize onChange={e => setSize(e.target.value)}>
                 {product.size &&
                   product.size.map(s => (
                     <FilterSizeOption key={s}>{s}</FilterSizeOption>
@@ -165,11 +178,17 @@ const Product = () => {
           </FilterContainer>
           <AddContainer>
             <AmountContainer>
-              <Remove style={{cursor: 'pointer'}} onClick={() => quantity > 1 && setQuantity(quantity -1)} />
+              <Remove
+                style={{ cursor: 'pointer' }}
+                onClick={() => quantity > 1 && setQuantity(quantity - 1)}
+              />
               <Amount>{quantity}</Amount>
-              <Add style={{cursor: 'pointer'}} onClick={() => setQuantity(quantity+1)} />
+              <Add
+                style={{ cursor: 'pointer' }}
+                onClick={() => setQuantity(quantity + 1)}
+              />
             </AmountContainer>
-            <Button>ADD TO CART</Button>
+            <Button onClick={handleClick}>ADD TO CART</Button>
           </AddContainer>
         </InfoContainer>
       </Wrapper>
