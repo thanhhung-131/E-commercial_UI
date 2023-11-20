@@ -133,12 +133,23 @@ const Product = () => {
   useEffect(() => {
     const getProduct = async () => {
       try {
-        const res = await publicRequest.get('/products/find/' + id)
-        setProduct(res.data)
+        const res = await publicRequest.get('/products/find/' + id);
+        setProduct(res.data);
+  
+        // Nếu size không được chọn, chọn size đầu tiên nếu có
+        if (!size && res.data.size && res.data.size.length > 0) {
+          setSize(res.data.size[0]);
+        }
+  
+        // Nếu color không được chọn, chọn color đầu tiên nếu có
+        if (!color && res.data.color && res.data.color.length > 0) {
+          setColor(res.data.color[0]);
+        }
       } catch (err) {}
-    }
-    getProduct()
-  }, [id])
+    };
+    getProduct();
+  }, [id, size, color]);
+  
 
   const handleClick = (req, res) => {
     dispatch(

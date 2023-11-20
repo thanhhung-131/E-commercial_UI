@@ -2,14 +2,17 @@ import styled from 'styled-components'
 import Navbar from '../components/Navbar'
 import Announcement from '../components/Announcement'
 import Footer from '../components/Footer'
-import Add from '@mui/icons-material/Add'
-import Remove from '@mui/icons-material/Remove'
 import { mobile } from '../responsive'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import StripeCheckout from 'react-stripe-checkout'
 import { useEffect, useState } from 'react'
 import { userRequest } from '../requestMethods'
 import { useNavigate } from 'react-router-dom'
+import {
+  clearCart,
+  toggleSelect
+} from '../redux/cartRedux'
+import { Checkbox } from '@mui/material'
 
 // const KEY = process.env.REACT_APP_STRIPE
 // console.log(KEY)
@@ -19,6 +22,7 @@ const Container = styled.div``
 const Wrapper = styled.div`
   padding: 20px;
   ${mobile({ padding: '10px' })}
+  margin-bottom: 10px;
 `
 
 const Title = styled.h1`
@@ -66,6 +70,7 @@ const Info = styled.div`
 const Product = styled.div`
   display: flex;
   justify-content: space-between;
+  margin-bottom: 10px;
   ${mobile({ flexDirection: 'column' })}
 `
 
@@ -110,6 +115,7 @@ const ProductAmountContainer = styled.div`
   display: flex;
   align-items: center;
   margin-bottom: 20px;
+  font-size: 20px;
 `
 
 const ProductAmount = styled.div`
@@ -158,12 +164,20 @@ const Button = styled.button`
   background-color: #000;
   color: #fff;
   font-weight: 600;
+  cursor: pointer;
 `
 
 const Cart = () => {
   const cart = useSelector(state => state.cart)
   const [stripeToken, setStripeToken] = useState(null)
+  const currentUser = useSelector(state => state.user.currentUser)
+  const [data, setData] = useState([])
+  const [orderId, setOrderId] = useState(null)
+  const [orderCreated, setOrderCreated] = useState(false)
+  const [alertShown, setAlertShown] = useState(false);
   const navigate = useNavigate()
+  const dispatch = useDispatch()
+  // console.log(cart.products)
 
   const onToken = token => {
     setStripeToken(token)
@@ -174,19 +188,67 @@ const Cart = () => {
       try {
         let res = await userRequest.post('/checkout/payment', {
           tokenId: stripeToken.id,
-          amount: cart.total * 100
+          amount: cart.total
         })
-        console.log(res.data)
-        navigate('/success', {
-          replace: true,
-          stripeData: res?.data,
-          products: cart
-        })
+        setData(res.data)
+        // console.log(res.data)
       } catch {}
     }
+    // Trong Cart.js
+const createOrder = async () => {
+  try {
+    if (!orderCreated && cart) {
+      const res = await userRequest.post('/orders', {
+        userId: currentUser._id,
+        products: cart.products.map(item => ({
+          productId: item._id,
+          quantity: item._quantity
+        })),
+        amount: cart.total,
+        address: data?.billing_details?.address
+      });
+
+      setOrderId(res.data._id);
+      setOrderCreated(true);
+    }
+  } catch (error) {
+    console.error('Error creating order:', error);
+  }
+};
     stripeToken && makeRequest()
-  }, [stripeToken, cart.total, cart, navigate])
-  console.log(stripeToken)
+    try {
+      createOrder();
+      if (orderId !== null && !alertShown) {
+        alert(`Ordered successfully. Your order id is ${orderId}`);
+        setAlertShown(true); // Set the state to true after showing the alert
+      }
+    } catch (error) {
+      console.error('Error creating order:', error);
+      alert('Error creating order. Please try again.');
+    }
+  }, [
+    stripeToken,
+    navigate,
+    cart.total,
+    cart,
+    currentUser,
+    orderCreated,
+    data?.billing_details?.address,
+    orderId,
+    dispatch,
+    alertShown,
+    data.products
+  ])
+  // console.log(stripeToken)
+  const handleClearCart = () => {
+    dispatch(clearCart())
+  }
+  const handleReturn = () => {
+    navigate('/')
+  }
+  const handleCheckboxChange = (id, size, color) => {
+    dispatch(toggleSelect({ id, size, color }))
+  }
 
   return (
     <Container>
@@ -195,17 +257,29 @@ const Cart = () => {
       <Wrapper>
         <Title>YOUR BAG</Title>
         <Top>
-          <TopButton>CONTINUE SHOPPING</TopButton>
+          <TopButton onClick={handleReturn}>CONTINUE SHOPPING</TopButton>
           <TopTexts>
             <TopText>Shopping Bag(2)</TopText>
             <TopText>Your Wishlist(2)</TopText>
           </TopTexts>
-          <TopButton type='filled'>CHECKOUT NOW</TopButton>
+          <TopButton type='filled' onClick={handleClearCart}>
+            Clear all
+          </TopButton>
         </Top>
         <Bottom>
           <Info>
-            {cart.products.map(product => (
-              <Product key={product}>
+            {cart.products.map((product, index) => (
+              <Product key={index}>
+                <Checkbox
+                  checked={product.selected}
+                  onChange={() =>
+                    handleCheckboxChange(
+                      product.id,
+                      product.size,
+                      product.color
+                    )
+                  }
+                />
                 <ProductDetail>
                   <Image src={product.img} />
                   <Details>
@@ -223,9 +297,7 @@ const Cart = () => {
                 </ProductDetail>
                 <PriceDetail>
                   <ProductAmountContainer>
-                    <Add />
                     <ProductAmount>{product.quantity}</ProductAmount>
-                    <Remove />
                   </ProductAmountContainer>
                   <ProductPrice>$ {product.price}</ProductPrice>
                 </PriceDetail>
@@ -241,28 +313,32 @@ const Cart = () => {
             </SummaryItem>
             <SummaryItem>
               <SummaryItemText>Estimasted Shipping</SummaryItemText>
-              <SummaryItemPrice>$ 5.9</SummaryItemPrice>
+              <SummaryItemPrice>$ 0</SummaryItemPrice>
             </SummaryItem>
             <SummaryItem>
               <SummaryItemText>Shipping discount</SummaryItemText>
-              <SummaryItemPrice>$ -5.9</SummaryItemPrice>
+              <SummaryItemPrice>$ 0</SummaryItemPrice>
             </SummaryItem>
             <SummaryItem type='total'>
               <SummaryItemText>Total</SummaryItemText>
               <SummaryItemPrice>$ {cart.total}</SummaryItemPrice>
             </SummaryItem>
-            <StripeCheckout
-              name='Daiki Shop'
-              image='https://i.pinimg.com/564x/2f/40/66/2f4066d8bf21246ae73055e7709f3db3.jpg'
-              billingAddress
-              shippingAddress
-              description={`Your total is ${cart.total}`}
-              amount={cart.total * 100}
-              token={onToken}
-              stripeKey='pk_test_51NjI35LtxMLrCM1HD7CEKdUcAweXpoBrlB65gB1n5fOSSeZu4geOn0jVzWuw5HyjA3X0DegLliOETdfXqm8CxSEM00DriZDctr'
-            >
-              <Button>CHECKOUT NOW</Button>
-            </StripeCheckout>
+            {cart.total > 0 ? (
+              <StripeCheckout
+                name='Daiki Shop'
+                image='https://i.pinimg.com/564x/2f/40/66/2f4066d8bf21246ae73055e7709f3db3.jpg'
+                billingAddress
+                shippingAddress
+                description={`Your total is ${cart.total}`}
+                amount={cart.total * 100}
+                token={onToken}
+                stripeKey='pk_test_51NjI35LtxMLrCM1HD7CEKdUcAweXpoBrlB65gB1n5fOSSeZu4geOn0jVzWuw5HyjA3X0DegLliOETdfXqm8CxSEM00DriZDctr'
+              >
+                <Button>CHECKOUT NOW</Button>
+              </StripeCheckout>
+            ) : (
+              ''
+            )}
           </Summary>
         </Bottom>
       </Wrapper>

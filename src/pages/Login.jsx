@@ -3,6 +3,7 @@ import { mobile } from "../responsive"
 import { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { login } from "../redux/apiCalls"
+import { Link } from "react-router-dom"
 
 
 const Container = styled.div`
@@ -58,11 +59,11 @@ const Button = styled.button`
   }
 `
 
-const Link = styled.a`
-  margin: 5px 0;
-  text-decoration: underline;
-  cursor: pointer;
-`
+// const Link = styled.a`
+//   margin: 5px 0;
+//   text-decoration: underline;
+//   cursor: pointer;
+// `
 
 const Error = styled.span`
   color: red;
@@ -76,20 +77,25 @@ const Login = () => {
   const {isFetching, error} = useSelector(state => state.user)
 
   const handleClick = (e) => {
-    e.preventDefault()
-    login(dispatch, {username, password})
-  }
+    e.preventDefault();
+    if (!isFetching) {
+      login(dispatch, { username, password });
+    }
+    else {
+      throw error
+    }
+  };
   return (
     <Container>
         <Wrapper>
         <Title>SIGN IN</Title>
         <Form>
-          <Input placeholder='username' onChange={(e)=> setUsername(e.target.value)}/>
-          <Input placeholder='password' type="password" onChange={(e)=> setPassword(e.target.value)}/>
+          <Input placeholder='username' onChange={(e)=> setUsername(e.target.value)} required={true}/>
+          <Input placeholder='password' type="password" onChange={(e)=> setPassword(e.target.value)} required={true}/>
           <Button onClick={handleClick} disabled={isFetching}>LOGIN</Button>
-          {error && <Error>Something went wrong...</Error>}
+          {error && <Error>{error.response?.data || 'Something went wrong...'}</Error>}
           <Link>DO NOT YOU REMEMBER THE PASSWORD?</Link>
-          <Link>CREATE AN NEW ACCOUNT</Link>
+          <Link to={'/register'}>CREATE AN NEW ACCOUNT</Link>
         </Form>
       </Wrapper>
     </Container>

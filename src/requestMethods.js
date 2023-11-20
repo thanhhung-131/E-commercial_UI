@@ -1,13 +1,21 @@
 import axios from "axios";
 
-const BASE_URL = 'http://localhost:5000/api/'
-const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY0ZTMyNTc5ZDFkODY3Y2RhNzI4MmFiMiIsImlzQWRtaW4iOnRydWUsImlhdCI6MTY5NTg4OTg4NCwiZXhwIjoxNjk2MTQ5MDg0fQ.4VIJ1jhNDpGmV4tTgyyfrWCyunjc0mR0CSlrqHbPGAk'
+const BASE_URL = 'http://localhost:5000/api/';
+
+// Function to get user data from localStorage
+const getUserData = () => {
+  const persistedRoot = JSON.parse(localStorage.getItem('persist:root'));
+  return persistedRoot?.user ? JSON.parse(persistedRoot.user).currentUser : null;
+};
+
+// Get user data or default to an empty object
+const userData = getUserData() || {};
 
 export const publicRequest = axios.create({
-    baseURL: BASE_URL,
-})
+  baseURL: BASE_URL,
+});
 
 export const userRequest = axios.create({
-    baseURL: BASE_URL,
-    header: {token: `Bearer ${TOKEN}`}
-})
+  baseURL: BASE_URL,
+  headers: { token: `Bearer ${userData.accessToken || ''}` },
+});

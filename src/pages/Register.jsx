@@ -1,5 +1,6 @@
 import styled from 'styled-components'
 import { mobile } from '../responsive'
+import { useState } from 'react'
 
 const Container = styled.div`
   width: 100vw;
@@ -55,22 +56,30 @@ const Button = styled.button`
 `
 
 const Register = () => {
+  const [username, setUserName] = useState('')
+  const [password, setPassord] = useState('')
+  const [email, setEmail] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const hanldeRegister = (e) => { 
+    e.preventDefault()
+  }
   return (
     <Container>
       <Wrapper>
         <Title>CREATE AN ACCOUNT</Title>
         <Form>
-          <Input placeholder='name' />
+          <Input placeholder='first name' />
           <Input placeholder='last name' />
           <Input placeholder='username' />
           <Input placeholder='email' />
-          <Input placeholder='password' />
-          <Input placeholder='confirm password' />
+          <Input type='password' placeholder='password' />
+          <Input type='password' placeholder='confirm password' />
           <Agreement>
             By creating an account, I consent to the processing of my personal
             data in accordance with the <b>PRIVACY POLICY</b>
           </Agreement>
-          <Button>CREATE</Button>
+          <Button onClick={hanldeRegister}>CREATE</Button>
         </Form>
       </Wrapper>
     </Container>
